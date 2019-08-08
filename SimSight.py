@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[5]:
 
 
 from bs4 import BeautifulSoup
@@ -593,33 +593,6 @@ def pmaInfoList(root, phrase, names):
 
 #search = PSearch(Date(1,1,2018), Date(7,29,2019), 'all', 'Summaries', 'test1')
 #search = KSearch(Date(8,1,2017), Date(7,29,2019), 'KSummaries', 'KSums')
-
-
-# In[2]:
-
-
-from ipywidgets import widgets
-from IPython.display import display
-from IPython.core.display import HTML
-
-outputText = widgets.Text()
-inputText = widgets.Text()
-def sendIn(sender):
-    search = PSearch('Summaries', 'test1')
-    results = search.fullTextSearch([inputText.value], False)
-    search.resultValues([inputText.value], results)
-    search.getTotalSpreadsheet('Location', results)
-    search.plotTotalTwo('Location', str(inputText.value))
-
-display(HTML('<h1 style=\'margin-top:400px\'>SimSight</h1'))
-display(HTML('<h2>created by Mitchell Fanger</h2>'))
-display(HTML('<h4>SimSight is a tool used to perform full text searches on directories of PDF\'s</h4'))
-display(HTML('<h4>Search the public SSED database for a keyword and plot its frequency versus approval date</h4>'))
-display(HTML('<h4>Enter keyword:</h4>'))
-
-inputText.on_submit(sendIn)
-
-inputText
 
 
 # <h1 style='margin-top:400px'></h1>
