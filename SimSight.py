@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[5]:
+# In[4]:
 
 
 from bs4 import BeautifulSoup
@@ -40,7 +40,7 @@ class Searchable:
         r = []
     
         for i in range(len(self.phrases)):
-            r.append(self.termQuery(self.phrases[i]))
+            r.append(self.termQuery(self.phrases[i], self.index))
         
         return r
     
@@ -57,21 +57,26 @@ class Searchable:
 
         filepaths = [os.path.join(self.root,i) for i in os.listdir(self.root)]
         for path in filepaths:
-            text = self.getPDFText(path)
-            text2 = self.getPDFText2(path)
-
-            for i in range(len(text)):
-                writer.add_document(title=path.split("\\")[1] + '_Page_' + str(i), path=path,                    content=text[i])
-                writer.add_document(title=path.split("\\")[1] + '_Page_' + str(i) + '_2', path=path,                    content=text2[i])
-            print(path.split("\\")[1] + ' has been indexed')
+            try:
+                text = self.getPDFText(path)
+                text2 = self.getPDFText2(path)
+                for i in range(len(text)):
+                    writer.add_document(title=path.split("\\")[1] + '_Page_' + str(i), path=path,                        content=text[i])
+                    writer.add_document(title=path.split("\\")[1] + '_Page_' + str(i) + '_2', path=path,                        content=text2[i])
+                #print(path.split("\\")[1] + ' has been indexed')
+                
+            except:
+                print('error in ' + path)
+            
+            
         writer.commit()            
 
         
     
     #helper, searches index for particular phrase and prints results
-    def termQuery(self, phrase):
-
-        ix = open_dir("indexdir", indexname = self.index)
+    def termQuery(self, phrase, index):
+        
+        ix = open_dir("indexdir", indexname = index)
  
         qp = QueryParser("content", schema=ix.schema)
         q = qp.parse(phrase)
@@ -102,6 +107,7 @@ class Searchable:
 
         return text
     
+    #replaces line breaks with blanks instead of spaces
     def getPDFText2(self, path):
         text = []
         
@@ -115,7 +121,7 @@ class Searchable:
                 try:
                     text.append(page.extractText().replace('\n', ''))
                 except TypeError:
-                    print('TypeError in ' + path)
+                    print('error in ' + path)
 
         return text
 
@@ -153,7 +159,8 @@ class Searchable:
 
                         with open(path +'\\' + name + '.pdf', 'wb') as outputStream:
                             output.write(outputStream)
-                    
+    
+    #prints raw results                
     def printResults(self, phrases, results):
         
         for i in range(len(results)):
@@ -257,7 +264,8 @@ class PSearch(Searchable):
                         for chunk in r.iter_content(chunk_size=1024): 
                             if chunk: 
                                 pdf.write(chunk)
-                                
+    
+    #returns total number of unique PMAs                            
     def total(self, results):
 
         unique = set([])
@@ -269,6 +277,7 @@ class PSearch(Searchable):
 
         return str(len(unique))
     
+    #prints number of unique PMAs per keyword
     def resultValues(self, phrases, results):
          
         for i in range(len(results)):
@@ -280,6 +289,7 @@ class PSearch(Searchable):
                 
             print(phrases[i] + ': ' + str(len(unique)))
     
+    #returns a set of all unique PMAs
     def getSets(self, results):
         
         toRet = []
@@ -295,6 +305,7 @@ class PSearch(Searchable):
         
         return toRet
     
+    #writes csvs containing information about PMAs found in each search term
     def writeSpreadsheets(self, root, phrases, results):
         
         res = self.getSets(results)
@@ -305,6 +316,7 @@ class PSearch(Searchable):
             if len(res[i]) != 0:
                 pmaInfoList(root, name, res[i])
     
+    #writes a csv containing information about PMAs found in entire search
     def getTotalSpreadsheet(self, root, results):
         
         unique = set([])
@@ -316,7 +328,8 @@ class PSearch(Searchable):
         
         if len(unique) != 0:
             pmaInfoList(root, 'total', unique)
-            
+    
+    #plots a simple graph separated by decision date
     def plotTotal(self, root):
         with open(root + '\\total.csv') as file:
             string = file.read().replace('\n\n','\n')
@@ -329,7 +342,8 @@ class PSearch(Searchable):
         plt.bar(range(0,18), values)
         #plt.axis([0,17,0,30])
         plt.show()
-        
+    
+    #plots a graph based on decision date and advisory committee
     def plotTotalTwo(self, root, word):
 
         with open('advisorycommittees.txt', 'r') as file:
@@ -376,7 +390,30 @@ class PSearch(Searchable):
         plt.legend(pLegend, cLegend, bbox_to_anchor=(1,1.05))
 
         plt.show()
+    
+    #returns all PMAs found in first results but not second results
+    def subsearch(self, first, second):
+        
+        set1 = set([])
+        set2 = set([])
+        
+        for result in first:
+            for element in result: 
+                set1.add(element.split('\'')[3].split('\\\\')[1])
+                
+        for result in second:
+            for element in result: 
+                set2.add(element.split('\'')[3].split('\\\\')[1])
+        
+        toReturn = set([])
+        
+        for element in set1:
+            if not element in set2:
+                toReturn.add(element)
+                
+        return toReturn
 
+#returns list of keys given dictionary
 def getKeys(dictionary):
 
     l = []
@@ -386,22 +423,23 @@ def getKeys(dictionary):
 
     return l
 
+#searches public 510K database (only words from 2004 - present, anything past 2004 must be OCR'd)
 class KSearch(Searchable):
         
-    def __init__(self, s, e, r, i):
+    def __init__(self, r, i):
         
         super().__init__(r,i)
-        self.start = s
-        self.end = e
 
         if not os.path.exists(self.root):
             os.mkdir(self.root)
+    
+    #downloads summaries from range of dates
+    def downloadSums(self, s, e):
+        for i in range(s.monthsInBetween(e)):
+            self.loadDatabase(s.getDate(), s.lastDay())
+            s.nextMonth()
 
-        for i in range(self.start.monthsInBetween(self.end)):
-            self.loadDatabase(self.start.getDate(), self.start.lastDay())
-            self.start.nextMonth()
-
-        self.loadDatabase(self.end.firstDay(), self.end.getDate())
+        self.loadDatabase(e.firstDay(), e.getDate())
             
     def getSumURL(self, kURL):
         page_response = requests.get(kURL, timeout=5)
@@ -414,7 +452,7 @@ class KSearch(Searchable):
 
                 year = int(ID[1:3])
 
-                if year > 10:
+                if year > 9:
                     return 'http://www.accessdata.fda.gov/cdrh_docs/pdf' + ID[1:3] + '/'+ ID + '.pdf'
                 elif year > 1:
                     return 'http://www.accessdata.fda.gov/cdrh_docs/pdf' + ID[2:3] + '/'+ ID + '.pdf'
@@ -433,6 +471,7 @@ class KSearch(Searchable):
                 if chunk: 
                     pdf.write(chunk)
     
+    #if the webpage times out attempt it again
     def catchTimeout(self, detailsURL):
         try:
             sumURL = self.getSumURL(detailsURL)
@@ -456,8 +495,17 @@ class KSearch(Searchable):
                 detailsURL = 'https://www.accessdata.fda.gov' + str(textContent[i]).split('"')[1]
                 
                 self.catchTimeout(detailsURL)
-                
-                    
+    
+    def resultValues(self, phrases, results):
+
+        for i in range(len(results)):
+
+            unique = set([])
+
+            for element in results[i]:
+                unique.add(element.split('\'')[3])
+
+            print(phrases[i] + ': ' + str(len(unique)))
                     
             
                                 
@@ -530,11 +578,11 @@ class Date:
     def monthsInBetween(self, other):
         return (other.y - self.y)*12 + (other.m - self.m)
     
-#01%2F01%2F2017 
+#formats date so it can be sent into a request as 01%2F01%2F2017 
 def formatDate(date):
     return date[0:2] + '%2F' +date[3:5] + '%2F' + date[6:]
         
-    
+#given text file, reads in terms to be searched    
 def readInTerms(file):
     with open(file, 'r', encoding = 'utf-8') as f:
         words = f.read()
@@ -551,6 +599,7 @@ def readInTerms(file):
             
     return toRet
 
+#pulls info from public PMA database given certain 
 def getInfo(ID, lines):
     url = 'https://www.accessdata.fda.gov/scripts/cdrh/cfdocs/cfpma/pma.cfm?id=' + ID
     page_response = requests.get(url, timeout=5)
@@ -591,8 +640,61 @@ def pmaInfoList(root, phrase, names):
         
     writeToCSV(root, lines, phrase)
 
-#search = PSearch(Date(1,1,2018), Date(7,29,2019), 'all', 'Summaries', 'test1')
-#search = KSearch(Date(8,1,2017), Date(7,29,2019), 'KSummaries', 'KSums')
+search = KSearch('KSummaries', 'KSums')
+terms = readInTerms('keywordSearch.txt')
+#search.downloadSums(Date(1,1,2012), Date(1,1,2013))
+result = search.fullTextSearch(terms, False)
+search.resultValues(terms, result)
+
+    
+
+
+# In[6]:
+
+
+from ipywidgets import widgets
+from IPython.display import display
+from IPython.core.display import HTML
+
+outputText = widgets.Text()
+inputText = widgets.Text()
+def sendIn(sender):
+    search = PSearch('Summaries', 'test1')
+    results = search.fullTextSearch([inputText.value], False)
+    search.resultValues([inputText.value], results)
+    search.getTotalSpreadsheet('Location', results)
+    search.plotTotalTwo('Location', str(inputText.value))
+
+display(HTML('<h1 style=\'margin-top:400px\'>SimSight</h1'))
+display(HTML('<h2>created by Mitchell Fanger</h2>'))
+display(HTML('<h4>SimSight is a tool used to perform full text searches on directories of PDF\'s</h4'))
+display(HTML('<h4>Search the public SSED database for a keyword and plot its frequency versus approval date</h4>'))
+display(HTML('<h4>Enter keyword:</h4>'))
+
+inputText.on_submit(sendIn)
+
+inputText
 
 
 # <h1 style='margin-top:400px'></h1>
+
+# In[20]:
+
+
+set1 = {0,1,2,3,4,5,6,7,8,9}
+set2 = {1,3,5,7,9}
+
+for element in set2:
+    set1.remove(element)
+    
+print(set1)
+set1.remove(4)
+print(set1)
+set1.remove(3)
+
+
+# In[ ]:
+
+
+
+
