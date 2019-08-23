@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[4]:
+# In[24]:
 
 
 from bs4 import BeautifulSoup
@@ -169,6 +169,22 @@ class Searchable:
             for element in results[i]:
                 print(element)
                 print(element[21:29])
+                
+        #returns a set of all unique PMAs
+    def getSets(self, results):
+        
+        toRet = []
+        
+        for i in range(len(results)):
+
+            unique = set([])
+
+            for element in results[i]:
+                unique.add(element.split('\'')[3].split('\\\\')[1].split('.')[0].split('B')[0])
+
+            toRet.append(unique)
+        
+        return toRet
     
 
 
@@ -289,21 +305,7 @@ class PSearch(Searchable):
                 
             print(phrases[i] + ': ' + str(len(unique)))
     
-    #returns a set of all unique PMAs
-    def getSets(self, results):
-        
-        toRet = []
-        
-        for i in range(len(results)):
 
-            unique = set([])
-
-            for element in results[i]:
-                unique.add(element.split('\'')[3].split('\\\\')[1].split('.')[0].split('B')[0])
-
-            toRet.append(unique)
-        
-        return toRet
     
     #writes csvs containing information about PMAs found in each search term
     def writeSpreadsheets(self, root, phrases, results):
@@ -507,7 +509,38 @@ class KSearch(Searchable):
 
             print(phrases[i] + ': ' + str(len(unique)))
                     
+        #writes csvs containing information about PMAs found in each search term
+    def writeSpreadsheets(self, root, phrases, results):
+        
+        res = self.getSets(results)
+        
+        for i in range(len(res)):
             
+            name = phrases[i].replace('"', '')
+            if len(res[i]) != 0:
+                kInfoList(root, name, res[i])
+                
+    #returns all 510Ks found in first results but not second results
+    def subsearch(self, first, second):
+        
+        set1 = set([])
+        set2 = set([])
+        
+        for result in first:
+            for element in result: 
+                set1.add(element.split('\'')[3].split('\\\\')[1])
+                
+        for result in second:
+            for element in result: 
+                set2.add(element.split('\'')[3].split('\\\\')[1])
+        
+        toReturn = set([])
+        
+        for element in set1:
+            if not element in set2:
+                toReturn.add(element)
+                
+        return toReturn
                                 
 #creates an object to be searched from already existing pdfs; can call fullTextSearch                                
 class RootSearch(Searchable):
@@ -617,6 +650,25 @@ def getInfo(ID, lines):
             second = str(textContent[i]).split('<td align="Left">')[1].split('</td>')[0]
     lines.append([ID, first, second])
     return lines
+
+def getKInfo(ID, lines):
+    url = 'https://www.accessdata.fda.gov/scripts/cdrh/cfdocs/cfpmn/pmn.cfm?ID=' + ID
+    page_response = requests.get(url, timeout=5)
+    page_content = BeautifulSoup(page_response.content, "html.parser")
+
+    first = 'none'
+    second = 'none'
+    
+    textContent = page_content.find_all('tr')
+    
+    for i in range(9, len(textContent)):
+        if 'Decision Date' in str(textContent[i]):
+            first = str(textContent[i]).split('<td align="left">')[1][1:11]
+        elif '510k Review Panel' in str(textContent[i]):
+            second = str(textContent[i]).split('<td align="left">')[1].split('</td>')[0]
+    lines.append([ID, first, second.strip()])
+    return lines
+
 def writeToCSV(root, lines, file):
     
     with open(root + '\\' + file + '.csv', 'w') as csvfile:
@@ -639,12 +691,23 @@ def pmaInfoList(root, phrase, names):
         lines = getInfo(name, lines)
         
     writeToCSV(root, lines, phrase)
+    
+def kInfoList(root, phrase, names):
+    lines = []
+    
+    for name in names:
+        lines = getKInfo(name, lines)
+        
+    writeToCSV(root, lines, phrase)
 
 search = KSearch('KSummaries', 'KSums')
 terms = readInTerms('keywordSearch.txt')
+#terms = ['finite', 'element']
 #search.downloadSums(Date(1,1,2012), Date(1,1,2013))
 result = search.fullTextSearch(terms, False)
 search.resultValues(terms, result)
+#search.printResults(terms, result)
+search.writeSpreadsheets('sheets', terms, result)
 
     
 
@@ -691,6 +754,61 @@ print(set1)
 set1.remove(4)
 print(set1)
 set1.remove(3)
+
+
+# In[21]:
+
+
+
+def getKInfo(ID, lines):
+    url = 'https://www.accessdata.fda.gov/scripts/cdrh/cfdocs/cfpmn/pmn.cfm?ID=' + ID
+    page_response = requests.get(url, timeout=5)
+    page_content = BeautifulSoup(page_response.content, "html.parser")
+
+    first = 'none'
+    second = 'none'
+    
+    textContent = page_content.find_all('tr')
+    
+    for i in range(9, len(textContent)):
+        if 'Decision Date' in str(textContent[i]):
+            first = str(textContent[i]).split('<td align="Left">')[1][0:10]
+        elif '510k Review Panel' in str(textContent[i]):
+            second = str(textContent[i]).split('<td align="Left">')[1].split('</td>')[0]
+    lines.append([ID, first, second])
+    return lines
+
+def writeToCSV(root, lines, file):
+    
+    with open(root + '\\' + file + '.csv', 'w') as csvfile:
+        filewriter = csv.writer(csvfile)
+        filewriter.writerows(lines)
+    
+def kInfoList(root, phrase, names):
+    lines = []
+    
+    for name in names:
+        lines = getKInfo(name, lines)
+        
+    writeToCSV(root, lines, phrase)
+ID = 'K131950'
+url = 'https://www.accessdata.fda.gov/scripts/cdrh/cfdocs/cfpmn/pmn.cfm?ID=' + ID
+page_response = requests.get(url, timeout=5)
+page_content = BeautifulSoup(page_response.content, "html.parser")
+
+first = 'none'
+second = 'none'
+
+textContent = page_content.find_all('tr')
+
+for i in range(9, len(textContent)):
+    if 'Decision Date' in str(textContent[i]):
+        first = str(textContent[i]).split('<td align="left">')[1][1:11]
+    elif '510k Review Panel' in str(textContent[i]):
+        second = str(textContent[i]).split('<td align="left">')[1].split('</td>')[0].strip()
+        
+print(first.strip())
+print(second)
 
 
 # In[ ]:
