@@ -3,6 +3,7 @@
 ### Versions:
 Current working version is SimSight.py and SimSight.ipynb
 Note: Other SimSight versions such as SimSight(1).py etc are older versions
+SimSight-Demo is a Jupyter Notebook demo that searches PMA database and plots results of a single word
 
 
 ### Helpful Links:
