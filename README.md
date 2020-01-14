@@ -1,19 +1,16 @@
-# mitchell-s-repository
+# SimSight Project
+The goal of this project is to quantify the contribution of modeling and simulation in the regulatory approval of medical devices. The approach was to develop an open source tool that allows the user to search publicly available 510(k) and PMA databases by keywords. 
 
-### Versions:
-Current working version is SimSight.py and SimSight.ipynb
+The project was initiated the summer of 2019. For more details see **Poster_SimSight_2019.pdf**
 
-Note: Other SimSight versions such as SimSight(1).py etc are older versions
+## Team ##
+Paulina Rodriguez, Lope Talacay, Pavel Takmakov, and Tina Morrison  
 
-SimSight-Demo is a Jupyter Notebook demo that searches PMA database and plots results of a single word
+Summer Student Intern: Mitchell Fanger
 
-
-### Helpful Links:
+## Helpful Links ##
 
 [FDA Public 510k database](https://www.accessdata.fda.gov/scripts/cdrh/cfdocs/cfpmn/pmn.cfm)  
 [FDA Public PMA database](https://www.accessdata.fda.gov/scripts/cdrh/cfdocs/cfpma/pma.cfm)  
-
-[Object-Oriented Programming in Python vs Java](https://realpython.com/oop-in-python-vs-java/)
-
-
-
+[Object-Oriented Programming in Python vs Java](https://realpython.com/oop-in-python-vs-java/)<br>
+[FDA SUMMARY OF SAFETY AND EFFECTIVENESS DATA (SSED) OFFICE OF DEVICE EVALUATION TEMPLATE](https://www.fda.gov/media/113810/download)
