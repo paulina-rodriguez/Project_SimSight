@@ -3,6 +3,12 @@ The goal of this project is to quantify the contribution of modeling and simulat
 
 The project was initiated the summer of 2019. For more details see **Poster_SimSight_2019.pdf**
 
+Current working version: 
+
+- Python Script: SimSight.py
+- Jupyter Notebook: SimSight.ipynb
+- Jupyter Notebook with plot: SimSight-Demo
+
 ## Team ##
 Paulina Rodriguez, Lope Talacay, Pavel Takmakov, and Tina Morrison  
 
